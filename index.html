@@ -6,8 +6,8 @@
     <title>Gestión de Vacunas</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        /* Ajustes adicionales para pantallas pequeñas */
         .table th, .table td {
             font-size: 14px;
         }
@@ -50,6 +50,9 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="text-center mt-4">
+                    <button class="btn btn-success" onclick="generarPDF()">Generar PDF de Faltantes</button>
+                </div>
             </div>
         </div>
     </div>
@@ -58,16 +61,24 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Estructura modificable de vacunas por edad (puedes agregar o quitar vacunas según lo necesites)
         const vacunasPorEdad = [
             { edadMeses: 0, vacunas: [{ nombre: "BCG", dosis: "Única" }, { nombre: "Hepatitis B", dosis: "1ª Dosis" }] },
-            { edadMeses: 2, vacunas: [{ nombre: "Pentavalente", dosis: "1ª Dosis" }, { nombre: "Rotavirus", dosis: "1ª Dosis" }, { nombre: "Neumococo", dosis: "1ª Dosis" }] },
-            { edadMeses: 4, vacunas: [{ nombre: "Pentavalente", dosis: "2ª Dosis" }, { nombre: "Rotavirus", dosis: "2ª Dosis" }, { nombre: "Neumococo", dosis: "2ª Dosis" }] },
+            { edadMeses: 2, vacunas: [{ nombre: "Pentavalente", dosis: "1ª Dosis" }, { nombre: "Rotavirus", dosis: "1ª Dosis" }, { nombre: "Neumococo", dosis: "1ª Dosis" }, { nombre: "Polio", dosis: "1ª Dosis" }] },
+            { edadMeses: 3, vacunas: [{ nombre: "Meningococo", dosis: "1ª Dosis" }] },  // Vacuna a los 3 meses
+            { edadMeses: 4, vacunas: [{ nombre: "Pentavalente", dosis: "2ª Dosis" }, { nombre: "Rotavirus", dosis: "2ª Dosis" }, { nombre: "Neumococo", dosis: "2ª Dosis" }, { nombre: "Polio", dosis: "1ª Dosis" }] },
+            { edadMeses: 5, vacunas: [{ nombre: "Meningococo", dosis: "2ª Dosis" }] },  // Vacuna a los 5 meses
             { edadMeses: 6, vacunas: [{ nombre: "Hepatitis B", dosis: "2ª Dosis" }, { nombre: "Pentavalente", dosis: "3ª Dosis" }, { nombre: "Neumococo", dosis: "3ª Dosis" }] },
             { edadMeses: 12, vacunas: [{ nombre: "Triple Viral", dosis: "1ª Dosis" }, { nombre: "Neumococo", dosis: "Refuerzo" }, { nombre: "Hepatitis A", dosis: "Única" }] },
-            { edadMeses: 18, vacunas: [{ nombre: "Triple Viral", dosis: "2ª Dosis" }, { nombre: "Varicela", dosis: "Única" }] },
+            { edadMeses: 15, vacunas: [{ nombre: "Menigococo", dosis: "Refuerzo" }, { nombre: "Varicela", dosis: "Única" }] },  // Refuerzo de Polio a los 15 meses
+            { edadMeses: 18, vacunas: [{ nombre: "Pentavalente", dosis: "1ª Refuerzo" }] },
+            { edadAños:   5, vacunas: [{ nombre: "Polio", dosis: "Refuerzo" }, { nombre: "Varicela", dosis: "2ª Dosis" }, { nombre: "Triple Viral", dosis: "2ª Dosis" }, { nombre: "Triple Bacteriana", dosis: "2ª Refuerzo" }] }
         ];
 
+
         let vacunasPendientes = [];
+        let fechaNacimientoActual = "";
+        let edadMesesActual = 0;
 
         function calcularVacunas() {
             const dob = document.getElementById("dob").value;
@@ -76,14 +87,15 @@
                 return;
             }
 
+            fechaNacimientoActual = dob;
             const fechaNacimiento = new Date(dob);
             const hoy = new Date();
-            const edadMeses = (hoy.getFullYear() - fechaNacimiento.getFullYear()) * 12 + hoy.getMonth() - fechaNacimiento.getMonth();
+            edadMesesActual = (hoy.getFullYear() - fechaNacimiento.getFullYear()) * 12 + hoy.getMonth() - fechaNacimiento.getMonth();
 
             // Determinar vacunas según la edad
             vacunasPendientes = [];
             vacunasPorEdad.forEach(({ edadMeses: edad, vacunas }) => {
-                if (edad <= edadMeses) {
+                if (edad <= edadMesesActual) {
                     vacunasPendientes.push(...vacunas);
                 }
             });
@@ -136,6 +148,32 @@
                 estado.textContent = "Pendiente";
                 estado.classList.remove("text-success");
             }
+        }
+
+        async function generarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Obtener solo las vacunas pendientes
+            const vacunasFaltantes = vacunasPendientes.filter((_, index) => {
+                const estado = document.getElementById(`estado-${index}`);
+                return estado && estado.textContent === "Pendiente";
+            });
+
+            doc.setFontSize(16);
+            doc.text("Resumen de Vacunas Pendientes", 10, 10);
+            doc.setFontSize(12);
+            doc.text(`Fecha de Nacimiento: ${fechaNacimientoActual}`, 10, 20);
+            doc.text(`Edad en meses: ${edadMesesActual}`, 10, 30);
+            doc.text("Vacunas Faltantes:", 10, 40);
+
+            let yPosition = 50;
+            vacunasFaltantes.forEach((vacuna, index) => {
+                doc.text(`${index + 1}. ${vacuna.nombre} - ${vacuna.dosis}`, 10, yPosition);
+                yPosition += 10;
+            });
+
+            doc.save("resumen_vacunas_pendientes.pdf");
         }
     </script>
 </body>
