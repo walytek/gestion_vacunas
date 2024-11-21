@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Vacunas</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Ajustes adicionales para pantallas pequeñas */
+        .table th, .table td {
+            font-size: 14px;
+        }
+        .btn {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1 class="text-center text-primary mb-4">Gestión de Vacunas</h1>
+
+        <div class="row">
+            <!-- Entrada de fecha de nacimiento -->
+            <div class="col-12 col-md-6 offset-md-3">
+                <label for="dob" class="form-label">Fecha de Nacimiento:</label>
+                <div class="input-group mb-3">
+                    <input type="date" id="dob" class="form-control">
+                    <button class="btn btn-primary" onclick="calcularVacunas()">Calcular Vacunas</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Tabla de vacunas -->
+            <div class="col-12">
+                <h2 class="text-center mb-3">Vacunas</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Vacuna</th>
+                                <th>Dosis / Refuerzo</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaVacunas">
+                            <!-- Las filas se generarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const vacunasPorEdad = [
+            { edadMeses: 0, vacunas: [{ nombre: "BCG", dosis: "Única" }, { nombre: "Hepatitis B", dosis: "1ª Dosis" }] },
+            { edadMeses: 2, vacunas: [{ nombre: "Pentavalente", dosis: "1ª Dosis" }, { nombre: "Rotavirus", dosis: "1ª Dosis" }, { nombre: "Neumococo", dosis: "1ª Dosis" }] },
+            { edadMeses: 4, vacunas: [{ nombre: "Pentavalente", dosis: "2ª Dosis" }, { nombre: "Rotavirus", dosis: "2ª Dosis" }, { nombre: "Neumococo", dosis: "2ª Dosis" }] },
+            { edadMeses: 6, vacunas: [{ nombre: "Hepatitis B", dosis: "2ª Dosis" }, { nombre: "Pentavalente", dosis: "3ª Dosis" }, { nombre: "Neumococo", dosis: "3ª Dosis" }] },
+            { edadMeses: 12, vacunas: [{ nombre: "Triple Viral", dosis: "1ª Dosis" }, { nombre: "Neumococo", dosis: "Refuerzo" }, { nombre: "Hepatitis A", dosis: "Única" }] },
+            { edadMeses: 18, vacunas: [{ nombre: "Triple Viral", dosis: "2ª Dosis" }, { nombre: "Varicela", dosis: "Única" }] },
+        ];
+
+        let vacunasPendientes = [];
+
+        function calcularVacunas() {
+            const dob = document.getElementById("dob").value;
+            if (!dob) {
+                alert("Por favor, ingresa una fecha de nacimiento.");
+                return;
+            }
+
+            const fechaNacimiento = new Date(dob);
+            const hoy = new Date();
+            const edadMeses = (hoy.getFullYear() - fechaNacimiento.getFullYear()) * 12 + hoy.getMonth() - fechaNacimiento.getMonth();
+
+            // Determinar vacunas según la edad
+            vacunasPendientes = [];
+            vacunasPorEdad.forEach(({ edadMeses: edad, vacunas }) => {
+                if (edad <= edadMeses) {
+                    vacunasPendientes.push(...vacunas);
+                }
+            });
+
+            mostrarVacunas();
+        }
+
+        function mostrarVacunas() {
+            const tabla = document.getElementById("tablaVacunas");
+            tabla.innerHTML = ""; // Limpiar la tabla
+
+            vacunasPendientes.forEach((vacuna, index) => {
+                const fila = document.createElement("tr");
+
+                // Nombre de la vacuna
+                const celdaVacuna = document.createElement("td");
+                celdaVacuna.textContent = vacuna.nombre;
+                fila.appendChild(celdaVacuna);
+
+                // Dosis o Refuerzo
+                const celdaDosis = document.createElement("td");
+                celdaDosis.textContent = vacuna.dosis;
+                fila.appendChild(celdaDosis);
+
+                // Estado de la vacuna
+                const celdaEstado = document.createElement("td");
+                celdaEstado.textContent = "Pendiente";
+                celdaEstado.id = `estado-${index}`;
+                fila.appendChild(celdaEstado);
+
+                // Botón para marcar como colocada
+                const celdaAccion = document.createElement("td");
+                const botonColocada = document.createElement("button");
+                botonColocada.textContent = "Marcar como Colocada";
+                botonColocada.classList.add("btn", "btn-success", "btn-sm");
+                botonColocada.onclick = () => marcarColocada(index);
+                celdaAccion.appendChild(botonColocada);
+                fila.appendChild(celdaAccion);
+
+                tabla.appendChild(fila);
+            });
+        }
+
+        function marcarColocada(index) {
+            const estado = document.getElementById(`estado-${index}`);
+            if (estado.textContent === "Pendiente") {
+                estado.textContent = "Colocada";
+                estado.classList.add("text-success");
+            } else {
+                estado.textContent = "Pendiente";
+                estado.classList.remove("text-success");
+            }
+        }
+    </script>
+</body>
+</html>
