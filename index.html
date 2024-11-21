@@ -152,30 +152,67 @@
         }
 
         async function generarPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
 
-            // Obtener solo las vacunas pendientes
-            const vacunasFaltantes = vacunasPendientes.filter((_, index) => {
-                const estado = document.getElementById(`estado-${index}`);
-                return estado && estado.textContent === "Pendiente";
-            });
+    // Convertir meses a años y meses
+    const años = Math.floor(edadMesesActual / 12);
+    const meses = edadMesesActual % 12;
+    const edadTexto = años > 0 
+        ? `${años} año${años > 1 ? "s" : ""}${meses > 0 ? ` y ${meses} mes${meses > 1 ? "es" : ""}` : ""}` 
+        : `${meses} mes${meses > 1 ? "es" : ""}`;
 
-            doc.setFontSize(16);
-            doc.text("Resumen de Vacunas Pendientes", 10, 10);
-            doc.setFontSize(12);
-            doc.text(`Fecha de Nacimiento: ${fechaNacimientoActual}`, 10, 20);
-            doc.text(`Edad en meses: ${edadMesesActual}`, 10, 30);
-            doc.text("Vacunas Faltantes:", 10, 40);
+    // Obtener solo las vacunas pendientes
+    const vacunasFaltantes = vacunasPendientes.filter((_, index) => {
+        const estado = document.getElementById(`estado-${index}`);
+        return estado && estado.textContent === "Pendiente";
+    });
 
-            let yPosition = 50;
-            vacunasFaltantes.forEach((vacuna, index) => {
-                doc.text(`${index + 1}. ${vacuna.nombre} - ${vacuna.dosis}`, 10, yPosition);
-                yPosition += 10;
-            });
+    // Configuración inicial
+    let yPosition = 20; // Posición vertical inicial
+    const lineSpacing = 10; // Espaciado entre líneas
 
-            doc.save("resumen_vacunas_pendientes.pdf");
+    // Título
+    doc.setFontSize(16);
+    const title = "Resumen de Vacunas Pendientes";
+    doc.text(title, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += lineSpacing + 5; // Espaciado adicional después del título
+
+    // Fecha de nacimiento
+    doc.setFontSize(12);
+    const fechaText = `Fecha de Nacimiento: ${fechaNacimientoActual}`;
+    doc.text(fechaText, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += lineSpacing;
+
+    // Edad
+    const edadText = `Edad: ${edadTexto}`;
+    doc.text(edadText, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += lineSpacing + 5;
+
+    // Subtítulo para vacunas faltantes
+    doc.setFontSize(14);
+    doc.text("Vacunas Faltantes:", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += lineSpacing;
+
+    // Listado de vacunas faltantes
+    doc.setFontSize(12);
+    vacunasFaltantes.forEach((vacuna, index) => {
+        const vacunaText = `${index + 1}. ${vacuna.nombre} - ${vacuna.dosis}`;
+        doc.text(vacunaText, pageWidth / 2, yPosition, { align: "center" });
+        yPosition += lineSpacing;
+
+        // Salto de página si se alcanza el final de la página
+        if (yPosition > 280) {
+            doc.addPage();
+            yPosition = 20; // Reiniciar posición en la nueva página
         }
+    });
+
+    // Guardar el PDF
+    doc.save("resumen_vacunas_pendientes.pdf");
+}
+
     </script>
 </body>
 </html>
