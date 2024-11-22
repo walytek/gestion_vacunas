@@ -7,13 +7,35 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
     <style>
-        
         .table th, .table td {
-            font-size: 14git px;
+            font-size: 14px;
+        }
+        .pendiente {
+            color: #360202;
+            background-color: #dc3545; /* Rojo Bootstrap */
+        }
+        .colocada {
+            color: #0b0323;
+            background-color: #0d6efd; /* Azul Bootstrap */
         }
         .btn {
             font-size: 12px;
+        }
+        .share-icon {
+            font-size: 20px;
+            cursor: pointer;
+            color: #198754; /* Verde Bootstrap */
+        }
+        @media screen and (max-width: 576px) {
+            .table th, .table td {
+                font-size: 12px;
+            }
+            .btn {
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -21,8 +43,8 @@
     <div class="container mt-4">
         <h1 class="text-center text-primary mb-4">Gestión de Vacunas</h1>
 
+        <!-- Entrada de fecha de nacimiento -->
         <div class="row">
-            <!-- Entrada de fecha de nacimiento -->
             <div class="col-12 col-md-6 offset-md-3">
                 <label for="dob" class="form-label">Fecha de Nacimiento:</label>
                 <div class="input-group mb-3">
@@ -32,8 +54,8 @@
             </div>
         </div>
 
+        <!-- Tabla de vacunas -->
         <div class="row">
-            <!-- Tabla de vacunas -->
             <div class="col-12">
                 <h2 class="text-center mb-3">Vacunas</h2>
                 <div class="table-responsive">
@@ -42,6 +64,7 @@
                             <tr>
                                 <th>Vacuna</th>
                                 <th>Dosis / Refuerzo</th>
+                                <th>Edad (meses)</th>
                                 <th>Estado</th>
                                 <th>Acción</th>
                             </tr>
@@ -62,7 +85,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Estructura modificable de vacunas por edad (puedes agregar o quitar vacunas según lo necesites)
         const vacunasPorEdad = [
             { edadMeses: 0, vacunas: [{ nombre: "BCG", dosis: "Única" }, { nombre: "Hepatitis B", dosis: "1ª Dosis" }] },
             { edadMeses: 2, vacunas: [{ nombre: "Pentavalente", dosis: "1ª Dosis" }, { nombre: "Rotavirus", dosis: "1ª Dosis" }, { nombre: "Neumococo", dosis: "1ª Dosis" }, { nombre: "Polio", dosis: "1ª Dosis" }] },
@@ -75,7 +97,6 @@
             { edadMeses: 18, vacunas: [{ nombre: "Pentavalente", dosis: "1ª Refuerzo" }] },
             { edadMeses: 60, vacunas: [{ nombre: "Polio", dosis: "Refuerzo" }, { nombre: "Varicela", dosis: "2ª Dosis" }, { nombre: "Triple Viral", dosis: "2ª Dosis" }, { nombre: "Triple Bacteriana", dosis: "2ª Refuerzo" }] }
         ];
-
 
         let vacunasPendientes = [];
         let fechaNacimientoActual = "";
@@ -93,11 +114,13 @@
             const hoy = new Date();
             edadMesesActual = (hoy.getFullYear() - fechaNacimiento.getFullYear()) * 12 + hoy.getMonth() - fechaNacimiento.getMonth();
 
-            // Determinar vacunas según la edad
+            // Determinar vacunas pendientes
             vacunasPendientes = [];
             vacunasPorEdad.forEach(({ edadMeses: edad, vacunas }) => {
                 if (edad <= edadMesesActual) {
-                    vacunasPendientes.push(...vacunas);
+                    vacunas.forEach(vacuna => {
+                        vacunasPendientes.push({ ...vacuna, edadAplicacion: edad });
+                    });
                 }
             });
 
@@ -106,32 +129,33 @@
 
         function mostrarVacunas() {
             const tabla = document.getElementById("tablaVacunas");
-            tabla.innerHTML = ""; // Limpiar la tabla
+            tabla.innerHTML = "";
 
             vacunasPendientes.forEach((vacuna, index) => {
                 const fila = document.createElement("tr");
 
-                // Nombre de la vacuna
                 const celdaVacuna = document.createElement("td");
                 celdaVacuna.textContent = vacuna.nombre;
                 fila.appendChild(celdaVacuna);
 
-                // Dosis o Refuerzo
                 const celdaDosis = document.createElement("td");
                 celdaDosis.textContent = vacuna.dosis;
                 fila.appendChild(celdaDosis);
 
-                // Estado de la vacuna
+                const celdaEdad = document.createElement("td");
+                celdaEdad.textContent = `${vacuna.edadAplicacion} meses`;
+                fila.appendChild(celdaEdad);
+
                 const celdaEstado = document.createElement("td");
                 celdaEstado.textContent = "Pendiente";
                 celdaEstado.id = `estado-${index}`;
+                celdaEstado.classList.add("pendiente");
                 fila.appendChild(celdaEstado);
 
-                // Botón para marcar como colocada
                 const celdaAccion = document.createElement("td");
                 const botonColocada = document.createElement("button");
                 botonColocada.textContent = "Marcar como Colocada";
-                botonColocada.classList.add("btn", "btn-success", "btn-sm");
+                botonColocada.classList.add("btn", "btn-sm", "btn-primary");
                 botonColocada.onclick = () => marcarColocada(index);
                 celdaAccion.appendChild(botonColocada);
                 fila.appendChild(celdaAccion);
@@ -144,73 +168,55 @@
             const estado = document.getElementById(`estado-${index}`);
             if (estado.textContent === "Pendiente") {
                 estado.textContent = "Colocada";
-                estado.classList.add("text-success");
+                estado.classList.remove("pendiente");
+                estado.classList.add("colocada");
             } else {
                 estado.textContent = "Pendiente";
-                estado.classList.remove("text-success");
+                estado.classList.remove("colocada");
+                estado.classList.add("pendiente");
             }
         }
 
         async function generarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
 
-    // Convertir meses a años y meses
-    const años = Math.floor(edadMesesActual / 12);
-    const meses = edadMesesActual % 12;
-    const edadTexto = años > 0 
-        ? `${años} año${años > 1 ? "s" : ""}${meses > 0 ? ` y ${meses} mes${meses > 1 ? "es" : ""}` : ""}` 
-        : `${meses} mes${meses > 1 ? "es" : ""}`;
+    // Título del PDF
+    doc.setFontSize(16);
+    doc.text("Vacunas Pendientes", 10, 10);
 
-    // Obtener solo las vacunas pendientes
+    // Información del usuario
+    doc.setFontSize(12);
+    doc.text(`Fecha de Nacimiento: ${fechaNacimientoActual}`, 10, 20);
+    doc.text(`Edad Calculada: ${edadMesesActual} meses`, 10, 30);
+
+    // Filtrar vacunas pendientes
     const vacunasFaltantes = vacunasPendientes.filter((_, index) => {
         const estado = document.getElementById(`estado-${index}`);
         return estado && estado.textContent === "Pendiente";
     });
 
-    // Configuración inicial
-    let yPosition = 20; // Posición vertical inicial
-    const lineSpacing = 10; // Espaciado entre líneas
+    // Estructura de datos para la tabla
+    const filas = vacunasFaltantes.map((vacuna, index) => [
+        index + 1,
+        vacuna.nombre,
+        vacuna.dosis,
+        `${vacuna.edadAplicacion} meses`
+    ]);
 
-    // Título
-    doc.setFontSize(16);
-    const title = "Resumen de Vacunas Pendientes";
-    doc.text(title, pageWidth / 2, yPosition, { align: "center" });
-    yPosition += lineSpacing + 5; // Espaciado adicional después del título
-
-    // Fecha de nacimiento
-    doc.setFontSize(12);
-    const fechaText = `Fecha de Nacimiento: ${fechaNacimientoActual}`;
-    doc.text(fechaText, pageWidth / 2, yPosition, { align: "center" });
-    yPosition += lineSpacing;
-
-    // Edad
-    const edadText = `Edad: ${edadTexto}`;
-    doc.text(edadText, pageWidth / 2, yPosition, { align: "center" });
-    yPosition += lineSpacing + 5;
-
-    // Subtítulo para vacunas faltantes
-    doc.setFontSize(14);
-    doc.text("Vacunas Faltantes:", pageWidth / 2, yPosition, { align: "center" });
-    yPosition += lineSpacing;
-
-    // Listado de vacunas faltantes
-    doc.setFontSize(12);
-    vacunasFaltantes.forEach((vacuna, index) => {
-        const vacunaText = `${index + 1}. ${vacuna.nombre} - ${vacuna.dosis}`;
-        doc.text(vacunaText, pageWidth / 2, yPosition, { align: "center" });
-        yPosition += lineSpacing;
-
-        // Salto de página si se alcanza el final de la página
-        if (yPosition > 280) {
-            doc.addPage();
-            yPosition = 20; // Reiniciar posición en la nueva página
-        }
+    // Generar tabla en el PDF
+    doc.autoTable({
+        startY: 40,
+        head: [["#", "Vacuna", "Dosis", "Edad (meses)"]], // Encabezados
+        body: filas, // Filas con datos de vacunas pendientes
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [41, 128, 185] }, // Color azul para el encabezado
+        alternateRowStyles: { fillColor: [240, 240, 240] } // Alternar colores en las filas
     });
 
-    // Guardar el PDF
-    doc.save("resumen_vacunas_pendientes.pdf");
+    // Guardar PDF
+    doc.save("vacunas_pendientes.pdf");
 }
 
     </script>
